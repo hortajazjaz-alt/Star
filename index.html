@@ -1,0 +1,200 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Juego con Monito y Estrellas</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js"></script>
+
+    <style>
+        body { margin: 0; padding: 0; }
+    </style>
+</head>
+<body>
+
+<script>
+    const config = {
+        type: Phaser.AUTO,
+        width: 800,
+        height: 600,
+        physics: {
+            default: "arcade",
+            arcade: {
+                gravity: { y: 500 },
+                debug: false
+            }
+        },
+        scene: {
+            preload: preload,
+            create: create,
+            update: update
+        }
+    };
+
+    let player;
+    let stars;
+    let score = 0;
+    let scoreText;
+    let cursors;
+
+    // --------------------------
+    // Cargar recursos
+    // --------------------------
+    function preload() {
+        // Usamos imágenes básicas de Phaser
+        
+
+        this.load.image("ground", "https://labs.phaser.io/assets/sprites/platform.png");
+        this.load.image("star", "https://labs.phaser.io/assets/demoscene/star.png");
+        this.load.spritesheet("dude",
+            "https://labs.phaser.io/assets/sprites/dude.png",
+            { frameWidth: 32, frameHeight: 48 }
+        );
+        this.load.spritesheet("bomb",
+    "https://labs.phaser.io/assets/sprites/explosion.png",
+    { frameWidth: 64, frameHeight: 64 }
+);
+    }
+
+    // --------------------------
+    // Crear escena
+    // --------------------------
+    function create() {
+        // Crear plataformas
+        const platforms = this.physics.add.staticGroup();
+        platforms.create(400, 580, "ground").setScale(2).refreshBody();
+
+        // Crear jugador
+        player = this.physics.add.sprite(100, 450, "dude");
+        player.setBounce(0.1);
+        player.setCollideWorldBounds(true);
+
+        // Animaciones del monito
+        this.anims.create({
+            key: "left",
+            frames: this.anims.generateFrameNumbers("dude", { start: 0, end: 3 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: "turn",
+            frames: [ { key: "dude", frame: 4 } ],
+            frameRate: 20
+        });
+
+        this.anims.create({
+            key: "right",
+            frames: this.anims.generateFrameNumbers("dude", { start: 5, end: 8 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        // Colisión con plataformas
+        this.physics.add.collider(player, platforms);
+
+        // Controles
+        cursors = this.input.keyboard.createCursorKeys();
+
+        // Crear estrellas
+        stars = this.physics.add.group({
+            key: "star",
+            repeat: 10,
+            setXY: { x: 20, y: 0, stepX: 70 }
+        });
+
+        stars.children.iterate(star => {
+            star.setBounceY(Phaser.Math.FloatBetween(0.3, 0.6));
+        });
+
+        this.physics.add.collider(stars, platforms);
+
+        // Cuando el jugador toca una estrella
+        this.physics.add.overlap(player, stars, collectStar, null, this);
+
+        // Score
+        scoreText = this.add.text(16, 16, "Score: 0", {
+            fontSize: "24px",
+            fill: "#ffffff"
+        });
+        // Crear grupo de bombas
+bombs = this.physics.add.group({
+    key: "bomb",
+    repeat: 3,
+    setXY: { x: 100, y: 0, stepX: 200 }
+});
+
+// Que reboten
+bombs.children.iterate(bomb => {
+    bomb.setBounce(0.8);
+    bomb.setCollideWorldBounds(true);
+});
+
+// Animación de explosión
+this.anims.create({
+    key: "boom",
+    frames: this.anims.generateFrameNumbers("bomb", { start: 0, end: 15 }),
+    frameRate: 20,
+    repeat: 0
+});
+
+// Colisiones
+this.physics.add.collider(bombs, platforms);
+this.physics.add.overlap(player, bombs, explodeBomb, null, this);
+
+    }
+
+    // --------------------------
+    // Actualizar cada frame
+    // --------------------------
+    function update() {
+        // Movimiento izquierda
+        if (cursors.left.isDown) {
+            player.setVelocityX(-160);
+            player.anims.play("left", true);
+        }
+        // Movimiento derecha
+        else if (cursors.right.isDown) {
+            player.setVelocityX(160);
+            player.anims.play("right", true);
+        }
+        // Quieto
+        else {
+            player.setVelocityX(0);
+            player.anims.play("turn");
+        }
+
+        // Saltar
+        if (cursors.up.isDown && player.body.touching.down) {
+            player.setVelocityY(-350);
+        }
+    }
+
+    // --------------------------
+    // Agarrar estrella
+    // --------------------------
+    function collectStar(player, star) {
+        star.disableBody(true, true);
+        score += 10;
+        scoreText.setText("Score: " + score);
+        function explodeBomb(player, bomb) {
+    // Evita que la bomba siga moviéndose
+    bomb.body.enable = false;
+
+    // Reproducir animación
+    bomb.anims.play("boom");
+
+    // Cuando termine, destruir la bomba
+    bomb.on("animationcomplete", () => {
+        bomb.destroy();
+    });
+}
+
+    }
+
+    // Iniciar juego
+    new Phaser.Game(config);
+</script>
+
+</body>
+</html>
